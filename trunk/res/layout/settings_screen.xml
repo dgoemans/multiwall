@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+	  android:layout_width="fill_parent"
+	  android:layout_height="fill_parent" android:orientation="vertical">
+
+	<TextView android:text="@string/homeScreens" 
+		android:id="@+id/tvNumScreensTitle" 
+		android:layout_width="wrap_content" 
+		android:layout_height="wrap_content">
+	</TextView>
+	
+	<SeekBar android:layout_width="fill_parent" 
+		android:layout_height="wrap_content"
+		android:id="@+id/sbNumScreens">
+	</SeekBar>
+	
+	<TextView android:id="@+id/numScreens" 
+		android:layout_width="fill_parent" 
+		android:text="0" 
+		android:textSize="20dp"
+		android:gravity="center"
+		android:layout_height="wrap_content">
+	</TextView>
+	
+	<LinearLayout android:layout_width="fill_parent" 
+		android:layout_height="wrap_content" 
+		android:id="@+id/imageLayout" 
+		android:orientation="vertical">
+	</LinearLayout>
+</LinearLayout>

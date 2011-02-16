@@ -1,0 +1,29 @@
+<manifest
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.davidgoemans.multiWall">
+
+    <uses-sdk android:minSdkVersion="7" />
+    <uses-feature android:name="android.software.live_wallpaper" />
+
+    <application
+        android:label="@string/wallpaper"
+        android:icon="@drawable/ic_launcher_wallpaper">
+
+        <service
+            android:label="@string/wallpaper"
+            android:name="MultiWall"
+            android:permission="android.permission.BIND_WALLPAPER">
+            <intent-filter>
+                <action android:name="android.service.wallpaper.WallpaperService" />
+            </intent-filter>
+            <meta-data android:name="android.service.wallpaper" android:resource="@xml/wallpaper" />
+        </service>
+        <activity
+            android:label="@string/settings"
+            android:name="MultiWallSettings"
+            android:theme="@android:style/Theme.Light.WallpaperSettings"
+            android:exported="true">
+        </activity>
+
+    </application>
+</manifest>
