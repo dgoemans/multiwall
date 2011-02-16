@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<RelativeLayout android:id="@+id/RelativeLayout01" 
+	android:layout_width="fill_parent" 
+	android:layout_height="fill_parent" 
+	xmlns:android="http://schemas.android.com/apk/res/android">
+	
+	<Button android:layout_alignParentRight="true" 
+		android:id="@+id/btnChoose"
+		android:onClick="pickImage" 
+		android:text="@string/imageButton"
+		android:layout_width="wrap_content" 
+		android:layout_height="wrap_content">
+	</Button>
+	
+	<ImageView android:layout_toLeftOf="@+id/btnChoose" 
+		android:id="@+id/pickedImage" 
+		android:layout_height="wrap_content" 
+		android:layout_width="wrap_content" 
+		android:layout_alignTop="@+id/btnChoose" 
+		android:layout_alignBottom="@+id/btnChoose">
+	</ImageView>
+		
+	<TextView android:layout_width="wrap_content" 
+		android:id="@+id/tvPickImage" 
+		android:text="@string/imageLabel" 
+		android:layout_alignParentLeft="true"
+		android:layout_toLeftOf="@+id/Button01" 
+		android:layout_height="wrap_content" 
+		android:layout_alignTop="@+id/Button01" 
+		android:layout_alignBottom="@+id/Button01">
+	</TextView>
+
+
+</RelativeLayout>
