@@ -1,19 +1,27 @@
 
 package com.davidgoemans.multiWall;
 
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.SyncFailedException;
 import java.util.ArrayList;
 
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Bitmap.CompressFormat;
 import android.net.Uri;
 import android.os.Bundle;
 import android.preference.PreferenceActivity;
 import android.provider.MediaStore;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -32,6 +40,7 @@ public class MultiWallSettings extends Activity implements OnSeekBarChangeListen
 	TextView homeScreenCountLabel;
 	ArrayList<String> images;
 	final String  prefsBase = "image_";
+	DisplayMetrics metrics;
 	
 
     @Override
@@ -59,6 +68,9 @@ public class MultiWallSettings extends Activity implements OnSeekBarChangeListen
     
     void Load()
     {
+		metrics = new DisplayMetrics();
+		getWindowManager().getDefaultDisplay().getMetrics(metrics);
+		
     	SharedPreferences prefs = getSharedPreferences(MultiWall.SHARED_PREFS_NAME, 0);
     	numScreens = prefs.getInt("numScreens", 5);
     	UpdatePickers();
@@ -156,19 +168,94 @@ public class MultiWallSettings extends Activity implements OnSeekBarChangeListen
             int columnIndex = cursor.getColumnIndex(filePathColumn[0]);
             String filePath = cursor.getString(columnIndex);
             cursor.close();      
+    
+            String localPath = copyScaledImageToLocalStorage(filePath);
             
-            setImageAt(requestCode, filePath);
+            setImageAt(requestCode, localPath);
         }
+	}
+	
+	
+	// Returns the path where it's stored locally
+	String copyScaledImageToLocalStorage(String imagePath)
+	{
+		Uri pathUri = Uri.parse(imagePath);
+		String outputPath = null;
+		FileOutputStream stream;
+		
+		try 
+		{
+			outputPath = pathUri.getLastPathSegment();
+			stream = openFileOutput(outputPath, MODE_PRIVATE);
+			Bitmap toScale = BitmapFactory.decodeFile(imagePath);
+			
+			Bitmap scaled = Bitmap.createScaledBitmap(toScale, metrics.widthPixels, metrics.heightPixels, true);
+			// Some manual cleanup since we're fighting the vm here
+			toScale.recycle();
+			
+			if( !scaled.compress(CompressFormat.PNG, 80, stream) )
+			{
+				outputPath = null;
+			}
+
+			// Some manual cleanup since we're fighting the vm here
+			scaled.recycle();
+			
+			stream.getFD().sync();
+			stream.close();
+		} 
+		catch (FileNotFoundException e) 
+		{
+			ShowErrorDialog("Couldn't find the image " + e.getMessage());
+		}
+		catch (NullPointerException e)
+		{
+			ShowErrorDialog("Couldn't open the image - " + e.getMessage());
+		} 
+		catch (SyncFailedException e) 
+		{
+			ShowErrorDialog("Couldn't sync the image to disk - " + e.getMessage());
+		} 
+		catch (IOException e) 
+		{
+			ShowErrorDialog("Couldn't write the image to disk - " + e.getMessage());
+		}
+		
+		return outputPath;
+		
 	}
 	
 	void setImageAt(int index, String imagePath)
 	{
-		Bitmap loadedImage = BitmapFactory.decodeFile(imagePath);
-		loadedImage = Bitmap.createScaledBitmap(loadedImage, 120, 160, false);
-        ImageView image = (ImageView)homeScreenPickers.get(index).findViewById(R.id.pickedImage);
-        image.setImageBitmap(loadedImage);
-        
-        images.set(index, imagePath);
+		
+		Bitmap loadedImage;
+		try 
+		{
+			loadedImage = BitmapFactory.decodeStream(openFileInput(imagePath));
+			loadedImage = Bitmap.createScaledBitmap(loadedImage, 120, 160, false);
+	        ImageView image = (ImageView)homeScreenPickers.get(index).findViewById(R.id.pickedImage);
+	        image.setImageBitmap(loadedImage);
+	        images.set(index, imagePath);
+		} 
+		catch (FileNotFoundException e) 
+		{
+			ShowErrorDialog("Couldn't load image, saving may have failed - " + e.getMessage());
+			e.printStackTrace();
+		}
+	}
+	
+	void ShowErrorDialog(String reason)
+	{
+		AlertDialog.Builder builder = new AlertDialog.Builder(this);
+		builder.setMessage("Couldn't load that image: " + reason)
+		       .setCancelable(false)
+		       .setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+		           public void onClick(DialogInterface dialog, int id) 
+		           {
+		        	   dialog.cancel();
+		           }
+		       });
+		AlertDialog alert = builder.create();
 	}
 
 	@Override
