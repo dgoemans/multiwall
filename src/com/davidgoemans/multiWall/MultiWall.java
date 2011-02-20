@@ -1,5 +1,6 @@
 
 package com.davidgoemans.multiWall;
+import java.io.FileNotFoundException;
 import java.util.ArrayList;
 
 import android.content.SharedPreferences;
@@ -102,6 +103,7 @@ public class MultiWall extends WallpaperService
         
         public int NumScreens = 0;
         Bitmap currentScreen;
+        Bitmap nextScreen;
         ArrayList<String> imagePaths;
 
         public void onSharedPreferenceChanged(SharedPreferences prefs, String key) 
@@ -115,7 +117,7 @@ public class MultiWall extends WallpaperService
         	imagePaths = new ArrayList<String>();
         	
         	
-        	imageKey = keyBase + (screenIndex + 1);
+        	imageKey = keyBase + (currentIndex + 1);
         	String currentPath = prefs.getString(imageKey, "");
 
         	for( int i=1; i<=NumScreens; i++ )
@@ -162,35 +164,102 @@ public class MultiWall extends WallpaperService
             }
         }
 
-        int screenIndex = 0;
+        int currentIndex = 0;
+        
+        int getNextIndex()
+        {        	
+        	int nextIndex = currentIndex;
+        	
+        	float indexOffset = ((float)(NumScreens-1) * offset );
+        	float offsetFromCurrentScreen = indexOffset - (float)currentIndex;
+        	
+        	if( offsetFromCurrentScreen != 0 )
+        	{
+            	// Depending on the direction we're moving, the next index is relative to the screen index
+            	// clamped between 0 and NumScreens-1
+	        	if( (int)Math.floor(indexOffset) ==  currentIndex )
+	        	{
+	        		nextIndex = Math.min(NumScreens-1, currentIndex+1);
+	        	}
+	        	else if( (int)Math.ceil(indexOffset) == currentIndex )
+	        	{
+	        		nextIndex = Math.max(0, currentIndex-1);
+	        	}
+        	}	
+        	return nextIndex;
+        }
         
         void drawScene(Canvas c, int width, int height) 
         {
         	c.save();
         	
-        	int oldScreenIndex = screenIndex;
-        	screenIndex = Math.min((int)( (float)NumScreens * offset ), NumScreens-1);
+        	int oldScreenIndex = currentIndex;
+        	float indexOffset = ((float)(NumScreens-1) * offset );
         	
-        	if( currentScreen == null || oldScreenIndex != screenIndex)
+        	currentIndex = Math.min(Math.round(indexOffset), NumScreens-1);
+        	
+        	float offsetFromCurrentScreen = indexOffset - (float)currentIndex;
+
+        	int nextIndex = getNextIndex();
+        	
+        	if( wallpapers.size() <= currentIndex )
         	{
-        		currentScreen = wallpapers.get(screenIndex);
-        		
-        		if(currentScreen == null )
-        		{
-        			currentScreen = BitmapFactory.decodeFile(imagePaths.get(screenIndex));
-        			currentScreen = Bitmap.createScaledBitmap(currentScreen, c.getWidth(), c.getHeight(), false);
-        			wallpapers.set(screenIndex, currentScreen);
-        		}
+        		// TOOD: Draw error paper
+        	}
+        	else if( currentScreen == null || oldScreenIndex != currentIndex)
+        	{
+        		currentScreen = loadScreen(currentIndex);
         	}
         	
+			if( nextIndex != currentIndex )
+			{
+				nextScreen = loadScreen(nextIndex);  
+			}
+			
+        	int xOffset = (int)((float)offsetFromCurrentScreen*c.getWidth());
+        	
         	src.set(0,0, currentScreen.getWidth(), currentScreen.getHeight());
-        	dst.set(0,0,c.getWidth(),c.getHeight());
+        	dst.set(-xOffset,0, c.getWidth() - xOffset,c.getHeight());
         	c.drawBitmap(currentScreen, 
         			src,
         			dst, 
         			paint);
         	
+        	if( nextScreen != null && xOffset != 0 )
+        	{
+        		int nextXOffset = (int) Math.signum(xOffset)*(c.getWidth() - Math.abs(xOffset));
+
+	        	src.set(0, 0, nextScreen.getWidth(), nextScreen.getHeight());
+	        	dst.set(nextXOffset, 0, nextXOffset + c.getWidth(),c.getHeight());
+	        	
+	        	c.drawBitmap(nextScreen, 
+	        			src,
+	        			dst, 
+	        			paint);
+        	}
+        	
         	c.restore();
+        }
+        
+        Bitmap loadScreen(int screenIndex)
+        {
+        	Bitmap loaded = wallpapers.get(screenIndex);
+        	
+        	if( loaded == null )
+	        {
+	        	try 
+	        	{
+	        		loaded = BitmapFactory.decodeStream(openFileInput(imagePaths.get(screenIndex)));
+	    			// And cache it
+	    			wallpapers.set(screenIndex, loaded);
+				} 
+	        	catch (FileNotFoundException e) 
+				{
+					e.printStackTrace();
+				}
+	        }
+			
+        	return loaded;
         }
  
         void drawTouchPoint(Canvas c) 
