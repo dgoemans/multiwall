@@ -1,0 +1,1 @@
+Live wallpaper for the Android platform that allows the user to select a single image for each homescreen.
